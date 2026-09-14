@@ -9,13 +9,15 @@ const dbPath = path.join(root, "articles.json"); // Fallback simple DB for dev
 await fs.mkdir(rejectedDir,{recursive:true});
 
 const today=new Date().toISOString().slice(0,10);
-const categories=["mind","islam","philosophy","history","science","technology","world","story","uplift","poetry","sufi","tasawuf","aqidah","akhlak","fiqih"];
+const categories=["daily-life", "nature", "people-culture", "world", "science", "short-story"];
+const levels=["A1", "A2", "B1", "B2"];
 
 const ideas=await generateJSON(`
-Generate 5 candidate "Mental Nutrition" articles for ${today}.
+Generate 3 candidate "Simple Reads" English articles for ${today}.
 Categories: ${categories.join(", ")}.
-Themes: Constructive, truthful.
-Return JSON array: title, description, category, angle, factual_risk (low|medium|high).
+Levels: ${levels.join(", ")}.
+Themes: Educational, simple vocabulary, CEFR aligned.
+Return JSON array: title, description, category, level, angle.
 `);
 
 const candidates=ideas.filter(x=>x.factual_risk!=="high").slice(0,5);
@@ -25,11 +27,10 @@ for(const idea of candidates){
   const slug=slugify(idea.title);
 
   // 2. WRITER
-  const article=await generateText(`Write a "Mental Nutrition" article in Bahasa Indonesia. Title: ${idea.title}. Category: ${idea.category}. Angle: ${idea.angle}. Length: 750-900 words. Use Markdown. Reflective question at the end.`,{temperature:.65});
-  if(wordCount(article)<650)continue;
-
+  const article=await generateText(`Write a "Simple Reads" article in English for CEFR level ${idea.level}. Category: ${idea.category}. Topic: ${idea.title}. Description: ${idea.description}. Target audience: Learners. Style: Simple, clear, short sentences. Avoid idioms. Length: 400-600 words. Use Markdown. End with a simple question.`);
+  
   // 3. REVIEW
-  const review=await generateJSON(`Review article against: factuality, depth, constructive_impact. Return JSON: { publish: bool, score: 0-10, has_reflective_question: bool }. ARTICLE: ${article}`);
+  const review=await generateJSON(`Review article against: clarity, grammar, CEFR level alignment (${idea.level}). Return JSON: { publish: bool, score: 0-10 }. ARTICLE: ${article}`);
 
   if(!review.publish || review.score<8){
     await fs.writeFile(path.join(rejectedDir,`${today}-${slug}.json`),JSON.stringify({idea,review,article},null,2));
@@ -39,7 +40,7 @@ for(const idea of candidates){
   // 4. SAVE TO FALLBACK DB
   let db = [];
   try { db = JSON.parse(await fs.readFile(dbPath, 'utf8')); } catch(e) {}
-  db.push({ slug, title: idea.title, description: idea.description, content: article, category: idea.category, status: 'draft', impact_score: review.score, created_at: new Date().toISOString() });
+  db.push({ slug, title: idea.title, description: idea.description, content: article, category: idea.category, level: idea.level, status: 'draft', created_at: new Date().toISOString() });
   await fs.writeFile(dbPath, JSON.stringify(db, null, 2));
   published++;
 }
