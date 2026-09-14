@@ -1,32 +1,32 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 ---
-<BaseLayout title="Pencarian — Simple Reads" description="Cari nutrisi mental dan artikel yang bermakna.">
+<BaseLayout title="Search — Simple Reads" description="Search through thoughtful articles and mental nutrition.">
 <section class="section">
   <div style="margin-bottom: 2rem;">
-    <a class="back" href="/" style="text-decoration: none; color: var(--color-primary, #6750a4); font-weight: 500;">← Kembali ke Beranda</a>
-    <h1 style="margin-top: 1rem; font-size: 2rem; font-weight: 700;">Cari Artikel</h1>
-    <p style="color: var(--color-on-surface-variant, #49454f);">Temukan inspirasi, ketenangan, dan nutrisi mental.</p>
+    <a class="back" href="/" style="text-decoration: none; color: var(--color-primary, #6750a4); font-weight: 500;">← Back to Home</a>
+    <h1 style="margin-top: 1rem; font-size: 2rem; font-weight: 700;">Search Articles</h1>
+    <p style="color: var(--color-on-surface-variant, #49454f);">Find inspiration, clarity, and mental nourishment.</p>
   </div>
 
   <div class="search-box-container">
     <input 
       type="text" 
       id="search-input" 
-      placeholder="Ketik kata kunci judul atau isi artikel..." 
+      placeholder="Type keywords for titles or content..." 
       class="search-input"
       autocomplete="off"
     />
   </div>
 
   <div id="loading" style="display: none; margin-top: 1.5rem; color: var(--color-on-surface-variant);">
-    Memuat daftar artikel...
+    Loading articles...
   </div>
 
   <div id="results-count" style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--color-on-surface-variant);"></div>
 
   <div id="search-results" class="grid" style="margin-top: 1rem;">
-    <!-- Hasil pencarian akan disuntikkan lewat JavaScript -->
+    <!-- Search results injected via JS -->
   </div>
 </section>
 
@@ -92,46 +92,18 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       const initialQuery = urlParams.get('q');
       if (initialQuery) {
         searchInput.value = initialQuery;
-        const q = initialQuery.toLowerCase().trim();
-        const filtered = allArticles.filter(a => {
-          const titleMatch = (a.title || '').toLowerCase().includes(q);
-          const contentMatch = (a.content || '').toLowerCase().includes(q);
-          const categoryMatch = (a.category || '').toLowerCase().includes(q);
-          return titleMatch || contentMatch || categoryMatch;
-        });
-        renderResults(filtered);
-      } else {
-        renderResults(allArticles);
+        performSearch(initialQuery);
       }
     }
   }
 
-  function renderResults(articles) {
-    if (!articles || articles.length === 0) {
-      searchResults.innerHTML = '<p style="color: var(--color-on-surface-variant);">Tidak ada artikel yang cocok ditemukan.</p>';
-      resultsCount.textContent = 'Menampilkan 0 artikel';
-      return;
-    }
-
-    resultsCount.textContent = `Menampilkan ${articles.length} artikel`;
-    searchResults.innerHTML = articles.map(a => `
-      <a href="/articles/${a.slug}" class="card-search">
-        <div class="badge-category">${a.category || 'Artikel'}</div>
-        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; font-weight: 600;">${a.title}</h3>
-        <p style="margin: 0; font-size: 0.9rem; color: var(--color-on-surface-variant); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-          ${a.content ? a.content.replace(/#|\*|_/g, '').slice(0, 140) + '...' : ''}
-        </p>
-      </a>
-    `).join('');
-  }
-
-  searchInput.addEventListener('input', (e) => {
-    const q = e.target.value.toLowerCase().trim();
+  function performSearch(query) {
+    const q = query.toLowerCase().trim();
     if (!q) {
-      renderResults(allArticles);
+      searchResults.innerHTML = '';
+      resultsCount.textContent = '';
       return;
     }
-
     const filtered = allArticles.filter(a => {
       const titleMatch = (a.title || '').toLowerCase().includes(q);
       const contentMatch = (a.content || '').toLowerCase().includes(q);
@@ -139,10 +111,25 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       return titleMatch || contentMatch || categoryMatch;
     });
 
-    renderResults(filtered);
+    resultsCount.textContent = `Found ${filtered.length} article(s) matching "${query}"`;
+    
+    if (filtered.length === 0) {
+      searchResults.innerHTML = '<p style="color: var(--color-on-surface-variant);">No matching articles found. Try another keyword.</p>';
+      return;
+    }
+
+    searchResults.innerHTML = filtered.map(a => `
+      <a href="/articles/${a.slug}" class="card-search">
+        <div class="badge-category">${a.category} • ${a.level || 'B1'}</div>
+        <h3 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem;">${a.title}</h3>
+        <p style="font-size: 0.95rem; color: var(--color-on-surface-variant);">${a.description || ''}</p>
+      </a>
+    `).join('');
+  }
+
+  searchInput.addEventListener('input', (e) => {
+    performSearch(e.target.value);
   });
 
-  // Jalankan load data saat halaman siap
   fetchArticles();
 </script>
-</BaseLayout>

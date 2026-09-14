@@ -13,11 +13,11 @@ if (db) {
 
 const categories = ["mind", "islam", "philosophy", "history", "science", "technology", "world", "story", "uplift", "poetry", "sufi", "tasawuf", "aqidah", "akhlak", "fiqih"];
 ---
-<BaseLayout title="Arsip — Simple Reads" description="Daftar lengkap bacaan Simple Reads.">
+<BaseLayout title="Archive — Simple Reads" description="The complete archive of Simple Reads.">
 <section class="section">
   <a class="back" href="/">← Simple Reads</a>
   <p class="eyebrow">LIBRARY</p>
-  <h1>Arsip.</h1>
+  <h1>Archive.</h1>
   <div class="filters">
     {categories.map(c => <a class="md3-chip" href={`/category/${c}/`}>{c}</a>)}
   </div>

@@ -13,38 +13,38 @@ if (db) {
 
 const categories = ["mind", "islam", "philosophy", "history", "science", "technology", "world", "story", "uplift", "poetry", "sufi", "tasawuf", "aqidah", "akhlak", "fiqih"];
 const categoryLabels = {
-  mind: "🧠 Pikiran",
+  mind: "🧠 Mind",
   islam: "🕌 Islam",
-  philosophy: "🏛️ Filsafat",
-  history: "🌍 Sejarah",
-  science: "🔬 Sains",
-  technology: "💻 Teknologi",
-  world: "📰 Dunia",
-  story: "📚 Cerita",
-  uplift: "✨ Senyum",
-  poetry: "🍃 Puisi",
+  philosophy: "🏛️ Philosophy",
+  history: "🌍 History",
+  science: "🔬 Science",
+  technology: "💻 Technology",
+  world: "📰 World",
+  story: "📚 Story",
+  uplift: "✨ Uplift",
+  poetry: "🍃 Poetry",
   sufi: "🕯️ Sufi",
-  tasawuf: "💫 Tasawuf",
-  aqidah: "📖 Aqidah",
-  akhlak: "💖 Akhlak",
-  fiqih: "⚖️ Fiqih"
+  tasawuf: "💫 Tasawwuf",
+  aqidah: "📖 Creed",
+  akhlak: "💖 Ethics",
+  fiqih: "⚖️ Jurisprudence"
 };
 ---
-<BaseLayout title="Jelajah — Simple Reads" description="Pilih kategori bacaan berdasarkan minat Anda.">
+<BaseLayout title="Explore — Simple Reads" description="Browse reading categories based on your interests.">
 <section class="section explore-section">
   <div class="hero compact-hero">
     <p class="eyebrow">LIBRARY</p>
-    <h1>Jelajah Kategori</h1>
-    <p class="lead">Temukan perspektif baru berdasarkan topik yang ingin Anda dalami.</p>
+    <h1>Browse Categories</h1>
+    <p class="lead">Discover fresh perspectives based on the topics you want to explore.</p>
   </div>
 
   <!-- Horizontal Scrolling Category Selector for Quick Jump -->
   <div class="scroll-chips-wrapper">
     <div class="scroll-chips">
-      <button class="md3-chip mood-filter-btn selected" onclick="filterMood('all')">🌟 Semua Suasana</button>
-      <button class="md3-chip mood-filter-btn" onclick="filterMood('ketenangan')">🌿 Ketenangan</button>
-      <button class="md3-chip mood-filter-btn" onclick="filterMood('analitis')">⚡ Analitis</button>
-      <button class="md3-chip mood-filter-btn" onclick="filterMood('hikmah')">🕌 Hikmah & Sejarah</button>
+      <button class="md3-chip mood-filter-btn selected" onclick="filterMood('all')">🌟 All Moods</button>
+      <button class="md3-chip mood-filter-btn" onclick="filterMood('ketenangan')">🌿 Calm</button>
+      <button class="md3-chip mood-filter-btn" onclick="filterMood('analitis')">⚡ Analytical</button>
+      <button class="md3-chip mood-filter-btn" onclick="filterMood('hikmah')">🕌 Wisdom & History</button>
     </div>
   </div>
 
@@ -69,11 +69,11 @@ const categoryLabels = {
         <div class="category-block" id={`cat-${cat}`}>
           <div class="block-header">
             <h2 class="block-title">{categoryLabels[cat] || cat}</h2>
-            <span class="block-count">{articles.length} artikel</span>
+            <span class="block-count">{articles.length} articles</span>
           </div>
           
           {articles.length === 0 ? (
-            <p class="empty-cat-text">Segera hadir — draf artikel untuk kategori ini sedang disiapkan.</p>
+            <p class="empty-cat-text">Coming soon — articles for this category are in preparation.</p>
           ) : (
             <ul class="article-title-list">
               {articles.slice(0, 4).map(article => (
@@ -82,7 +82,7 @@ const categoryLabels = {
                     <span class="bullet">•</span>
                     <div class="item-details">
                       <span class="item-title">{article.title}</span>
-                      <span class="item-desc">{article.description || "Baca selengkapnya..."}</span>
+                      <span class="item-desc">{article.description || "Read more..."}</span>
                     </div>
                   </a>
                 </li>
@@ -92,7 +92,7 @@ const categoryLabels = {
           
           {articles.length > 4 && (
             <a class="block-more-link" href={`/archive/?filter=${cat}`}>
-              Lihat semua {articles.length} artikel →
+              View all {articles.length} articles →
             </a>
           )}
         </div>
@@ -101,170 +101,3 @@ const categoryLabels = {
   </div>
 </section>
 </BaseLayout>
-
-<style>
-  .explore-section {
-    padding-bottom: 60px;
-  }
-  .compact-hero {
-    padding: 32px 0 20px;
-  }
-  
-  /* Horizontal Scrollable Chips */
-  .scroll-chips-wrapper {
-    margin: 0 -24px 28px -24px;
-    padding: 0 24px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .scroll-chips-wrapper::-webkit-scrollbar {
-    display: none;
-  }
-  .scroll-chips {
-    display: flex;
-    gap: 8px;
-    white-space: nowrap;
-    width: max-content;
-    padding-bottom: 4px;
-  }
-  .scroll-chips .md3-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.8125rem;
-  }
-  .badge {
-    background: var(--md-primary-container);
-    color: var(--md-on-primary-container);
-    padding: 1px 6px;
-    border-radius: 8px;
-    font-size: 0.6875rem;
-    font-weight: 600;
-  }
-
-  /* Compact Category Blocks */
-  .category-list {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .category-block {
-    background: var(--md-surface-container-lowest);
-    border: 1px solid var(--md-outline-variant);
-    border-radius: 20px;
-    padding: 24px;
-  }
-  .block-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--md-outline-variant);
-    padding-bottom: 12px;
-    margin-bottom: 16px;
-  }
-  .block-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--md-on-surface);
-  }
-  .block-count {
-    font-size: 0.75rem;
-    color: var(--md-on-surface-variant);
-    background: var(--md-surface-container-high);
-    padding: 2px 8px;
-    border-radius: 100px;
-  }
-  .empty-cat-text {
-    font-size: 0.875rem;
-    color: var(--md-outline);
-    font-style: italic;
-    margin: 0;
-  }
-
-  /* Tight Title-Only Lists */
-  .article-title-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .article-list-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    text-decoration: none;
-    color: var(--md-on-surface);
-  }
-  .article-list-item:hover .item-title {
-    color: var(--md-primary);
-  }
-  .bullet {
-    color: var(--md-primary);
-    font-weight: 900;
-    line-height: 1.4;
-  }
-  .item-details {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .item-title {
-    font-size: 0.9375rem;
-    font-weight: 500;
-    line-height: 1.4;
-    transition: color 0.15s ease;
-  }
-  .item-desc {
-    font-size: 0.75rem;
-    color: var(--md-on-surface-variant);
-    line-height: 1.4;
-  }
-
-  .block-more-link {
-    display: inline-block;
-    margin-top: 16px;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--md-primary);
-  }
-
-  @media (max-width: 768px) {
-    .scroll-chips-wrapper {
-      margin: 0 -16px 20px -16px;
-      padding: 0 16px;
-    }
-    .category-block {
-      padding: 18px;
-    }
-  }
-</style>
-
-<script is:inline>
-  const moodGroups = {
-    ketenangan: ["mind", "sufi", "tasawuf", "poetry", "uplift"],
-    analitis: ["science", "technology", "philosophy"],
-    hikmah: ["islam", "history", "aqidah", "akhlak", "fiqih", "world"]
-  };
-
-  window.filterMood = (mood) => {
-    document.querySelectorAll('.mood-filter-btn').forEach(btn => {
-      btn.classList.remove('selected');
-    });
-    event.currentTarget.classList.add('selected');
-
-    const blocks = document.querySelectorAll('.category-block');
-    blocks.forEach(block => {
-      const catId = block.id.replace('cat-', '');
-      if (mood === 'all') {
-        block.style.display = 'block';
-      } else {
-        const allowed = moodGroups[mood] || [];
-        block.style.display = allowed.includes(catId) ? 'block' : 'none';
-      }
-    });
-  };
-</script>
