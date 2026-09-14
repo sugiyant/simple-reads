@@ -22,24 +22,24 @@ const quotes = quotesData.quotes;
   <section class="section">
     <div class="hero" id="hero">
       <p class="eyebrow">MENTAL NUTRITION</p>
-      <h1>Makanan untuk Pikiran.</h1>
-      <p class="lead">Satu unit perspektif baru setiap hari. Saring kebisingan, tumbuhkan kejernihan dan kedamaian pikiran.</p>
-      <a href="/explore/" class="primary">Mulai Membaca →</a>
+      <h1>Food for Thought.</h1>
+      <p class="lead">One unit of new perspective daily. Filter the noise, cultivate clarity, and grow peace of mind.</p>
+      <a href="/explore/" class="primary">Start Reading →</a>
     </div>
   </section>
 
   <section class="section daily-quote-section" id="daily-quote-section">
-    <p class="eyebrow" style="margin-bottom: 24px;">✦ SEKILAS HARI INI</p>
+    <p class="eyebrow" style="margin-bottom: 24px;">✦ DAILY INSPIRATION</p>
     <blockquote class="daily-quote" id="daily-quote-text"></blockquote>
     <p class="daily-quote-attribution">— Simple Reads</p>
-    <a href="/explore/" class="daily-quote-link">Baca satu menit →</a>
+    <a href="/explore/" class="daily-quote-link">One minute read →</a>
   </section>
 
   <section class="section simple-reads-pick-section">
-    <h3 class="simple-reads-pick-title">Tidak tahu mau membaca apa?</h3>
-    <p class="simple-reads-pick-subtitle">Biarkan Simple Reads memilihkan sesuatu untukmu.</p>
+    <h3 class="simple-reads-pick-title">Not sure what to read?</h3>
+    <p class="simple-reads-pick-subtitle">Let Simple Reads pick something for you.</p>
     <a href="/api/random" class="simple-reads-pick-button" id="simple-reads-pick-btn">
-      <span class="button-label">Biarkan Simple Reads Memilih →</span>
+      <span class="button-label">Let Simple Reads Choose →</span>
     </a>
   </section>
 
@@ -88,7 +88,7 @@ const quotes = quotesData.quotes;
         pickBtn.classList.add("is-picking");
         var label = pickBtn.querySelector(".button-label");
         if (label) {
-          label.textContent = "Simple Reads sedang memilih...";
+          label.textContent = "Choosing for you...";
         }
       });
     }

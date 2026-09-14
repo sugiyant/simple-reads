@@ -1,5 +1,4 @@
 -- D1 Schema: Simple Reads
-
 DROP TABLE IF EXISTS articles;
 DROP TABLE IF EXISTS bookmarks;
 
@@ -16,7 +15,10 @@ CREATE TABLE articles (
   author TEXT DEFAULT 'Simple Reads Editorial',
   cover TEXT,
   views INTEGER DEFAULT 0,
-  created_at INTEGER DEFAULT (unixepoch())
+  created_at INTEGER DEFAULT (unixepoch()),
+  status TEXT DEFAULT 'published',
+  published_at TEXT,
+  impact_score INTEGER DEFAULT 0
 );
 
 CREATE TABLE bookmarks (
@@ -30,3 +32,4 @@ CREATE TABLE bookmarks (
 CREATE INDEX idx_articles_date ON articles(date DESC);
 CREATE INDEX idx_articles_category ON articles(category);
 CREATE INDEX idx_articles_level ON articles(level);
+CREATE INDEX idx_articles_status ON articles(status);
