@@ -1,0 +1,34 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export const prerender = false;
+
+const db = Astro.locals?.runtime?.env?.DB;
+let articles = [];
+
+if (db) {
+  const { results } = await db.prepare("SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC").all();
+  articles = results || [];
+}
+
+const categories = ["mind", "islam", "philosophy", "history", "science", "technology", "world", "story", "uplift", "poetry", "sufi", "tasawuf", "aqidah", "akhlak", "fiqih"];
+---
+<BaseLayout title="Arsip — Simple Reads" description="Daftar lengkap bacaan Simple Reads.">
+<section class="section">
+  <a class="back" href="/">← Simple Reads</a>
+  <p class="eyebrow">LIBRARY</p>
+  <h1>Arsip.</h1>
+  <div class="filters">
+    {categories.map(c => <a class="md3-chip" href={`/category/${c}/`}>{c}</a>)}
+  </div>
+  <div class="grid">
+    {articles.map(article => (
+      <a href={`/articles/${article.slug}`} class="card">
+        <span class="category">{article.category}</span>
+        <h2>{article.title}</h2>
+        <p>{article.description || article.content?.substring(0, 100) + '...'}</p>
+      </a>
+    ))}
+  </div>
+</section>
+</BaseLayout>

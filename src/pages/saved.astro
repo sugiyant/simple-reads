@@ -1,0 +1,138 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+<BaseLayout title="Artikel Tersimpan — Simple Reads">
+  <section class="section">
+    <p class="eyebrow">BOOKMARKS</p>
+    <h1>Artikel Tersimpan.</h1>
+    
+    <!-- Recovery / Restore Form -->
+    <div style="margin: 2rem 0; padding: 1.5rem; border: 1px solid var(--md-outline-variant); border-radius: 16px; background: var(--md-surface-container-low);">
+      <h3 style="margin-top: 0;">🔐 Pemulihan Bookmark</h3>
+      <p style="font-size: 0.875rem; color: var(--md-on-surface-variant); margin-bottom: 12px;">Punya kode pemulihan? Masukkan di bawah untuk menarik semua bookmark Anda ke perangkat ini.</p>
+      
+      <div id="restore-section" style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <input type="text" id="recovery-input" placeholder="Contoh: AB12-CD34" style="flex: 1; min-width: 150px; padding: 8px 16px; border: 1px solid var(--md-outline-variant); border-radius: 8px; background: var(--md-surface); color: var(--md-on-surface); font-family: monospace; font-size: 1rem; text-transform: uppercase;" autocomplete="off" />
+        <button id="restore-btn" class="md3-chip" style="cursor: pointer; font-weight: 600;">Pulihkan</button>
+      </div>
+      <p id="restore-status" style="margin: 8px 0 0; font-size: 0.8125rem; font-weight: 500; display: none;"></p>
+    </div>
+
+    <!-- Active List -->
+    <div id="saved-list">Memuat bookmark Anda...</div>
+  </section>
+
+  <script type="module">
+    import { getAnonId, setAnonId, getAllBookmarks } from '/js/bookmark-db.js';
+
+    const savedList = document.getElementById('saved-list');
+    const restoreBtn = document.getElementById('restore-btn');
+    const recoveryInput = document.getElementById('recovery-input');
+    const restoreStatus = document.getElementById('restore-status');
+
+    async function loadBookmarks() {
+      try {
+        const local = await getAllBookmarks();
+        const slugs = local.map(b => b.article_id);
+        
+        if (slugs.length === 0) {
+          savedList.innerHTML = '<p style="color: var(--md-on-surface-variant);">Belum ada artikel yang disimpan.</p>';
+          return;
+        }
+
+        const res = await fetch('/api/get-articles/');
+        if (!res.ok) throw new Error('Gagal mengambil daftar artikel.');
+        const allArticles = await res.json();
+        
+        const saved = allArticles.filter(a => slugs.includes(a.slug));
+        
+        if (saved.length === 0) {
+          savedList.innerHTML = '<p style="color: var(--md-on-surface-variant);">Belum ada artikel yang disimpan.</p>';
+          return;
+        }
+
+        savedList.innerHTML = `
+          <div class="grid">
+            ${saved.map(a => `
+              <a href="/articles/${a.slug}" class="card">
+                <span class="category">${a.category}</span>
+                <h2>${a.title}</h2>
+                <p>${a.description || a.content?.substring(0, 100) + '...'}</p>
+              </a>
+            `).join('')}
+          </div>
+        `;
+      } catch (e) {
+        savedList.innerHTML = `<p style="color: var(--md-error);">${e.message}</p>`;
+      }
+    }
+
+    // Restore functionality
+    restoreBtn.addEventListener('click', async () => {
+      const code = recoveryInput.value.trim().toUpperCase();
+      if (!code) {
+        showStatus('Masukkan kode pemulihan dahulu.', 'var(--md-error)');
+        return;
+      }
+
+      restoreBtn.disabled = true;
+      restoreBtn.innerText = 'Memproses...';
+      showStatus('Menghubungkan ke server...', 'var(--md-on-surface-variant)');
+
+      try {
+        const res = await fetch('/api/restore/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Gagal memulihkan. Periksa kembali kode Anda.');
+        }
+
+        // Successfully restored. Save the new anon_id
+        await setAnonId(data.anon_id);
+        
+        // Save bookmarks locally to IndexedDB
+        // Clear old ones first
+        const db = await new Promise((resolve, reject) => {
+          const r = indexedDB.open('simple-reads-bookmarks', 1);
+          r.onsuccess = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+        });
+        
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction('bookmarks', 'readwrite');
+          tx.objectStore('bookmarks').clear();
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+
+        // Insert new recovered ones
+        const tx = db.transaction('bookmarks', 'readwrite');
+        const store = tx.objectStore('bookmarks');
+        for (const slug of data.bookmarks) {
+          store.put({ article_id: slug, created_at: Date.now() });
+        }
+        
+        showStatus('✓ Pemulihan berhasil! Halaman akan direfresh...', 'var(--md-primary)');
+        setTimeout(() => window.location.reload(), 1500);
+
+      } catch (e) {
+        showStatus(e.message, 'var(--md-error)');
+        restoreBtn.disabled = false;
+        restoreBtn.innerText = 'Pulihkan';
+      }
+    });
+
+    function showStatus(msg, color) {
+      restoreStatus.style.display = 'block';
+      restoreStatus.style.color = color;
+      restoreStatus.innerText = msg;
+    }
+
+    loadBookmarks();
+  </script>
+</section>
+</BaseLayout>

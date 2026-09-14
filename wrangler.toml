@@ -1,0 +1,13 @@
+name = "simple-reads"
+pages_build_output_dir = "dist"
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2024-09-10"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "simple-reads-db"
+database_id = "e0f742b5-89be-4395-8812-a4fdf5fa41ec"  # jalankan: wrangler d1 create simple-reads-db
+
+[vars]
+BASIC_AUTH_USER = "admin"
+BASIC_AUTH_PASS = "admin"

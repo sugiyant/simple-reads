@@ -1,0 +1,49 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ArticleCard from "../../components/ArticleCard.astro";
+
+export const prerender = false;
+
+const { category } = Astro.params;
+const db = Astro.locals?.runtime?.env?.DB;
+
+let articles = [];
+
+if (db && category) {
+  try {
+    const { results } = await db.prepare(
+      "SELECT slug, title, description, category, published_at FROM articles WHERE status = 'published' AND category = ?1 ORDER BY published_at DESC"
+    ).bind(category).all();
+    // Adapt D1 rows to match ArticleCard's expected shape (article.data.*)
+    articles = results.map(row => ({
+      slug: row.slug,
+      data: {
+        title: row.title,
+        description: row.description || "",
+        category: row.category,
+        date: new Date(row.published_at),
+        readingTime: Math.max(1, Math.round((row.description || "").split(" ").length / 200))
+      }
+    }));
+  } catch (e) {
+    console.error("Error fetching category articles:", e);
+  }
+}
+---
+<BaseLayout title={`${category} — Simple Reads`} description={`Membaca artikel kategori ${category}.`}>
+  <section class="section">
+    <a class="back" href="/explore/">← Kembali ke Jelajah</a>
+    <p class="eyebrow">KATEGORI</p>
+    <h1 style="text-transform: capitalize;">{category}.</h1>
+
+    {articles.length === 0 ? (
+      <p style="color: var(--md-on-surface-variant); margin-top: 2rem;">Belum ada artikel di kategori ini.</p>
+    ) : (
+      <div class="grid">
+        {articles.map(article => (
+          <ArticleCard article={article} />
+        ))}
+      </div>
+    )}
+  </section>
+</BaseLayout>

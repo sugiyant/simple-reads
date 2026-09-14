@@ -1,0 +1,896 @@
+---
+const {
+  title = "Simple Reads — Makanan untuk Pikiran",
+  description = "Tempat teduh di internet untuk membaca hal-hal yang mendalam dan bermutu.",
+  image = "/og-default.svg",
+  noindex = false
+} = Astro.props;
+const site = import.meta.env.PUBLIC_SITE_URL || "https://example.com";
+const canonical = new URL(Astro.url.pathname, site).toString();
+const currentPath = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#FAFDFA" />
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  {noindex && <meta name="robots" content="noindex,nofollow" />}
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={new URL(image, site)} />
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="alternate" type="application/rss+xml" title="Simple Reads" href="/rss.xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" rel="stylesheet" />
+  <title>{title}</title>
+</head>
+<body>
+  <div class="progress" id="reading-progress"></div>
+
+  <header class="md3-top-app-bar" id="app-header">
+    <div class="md3-top-bar-content" id="normal-header-content">
+      <a class="md3-brand" href="/">Simple Reads</a>
+      <nav class="md3-desktop-nav">
+        <a href="/" class:list={[{"active": currentPath === "/"}]}>Beranda</a>
+        <a href="/explore/" class:list={[{"active": currentPath.startsWith("/explore")}]}>Jelajah</a>
+        <a href="/archive/" class:list={[{"active": currentPath.startsWith("/archive")}]}>Arsip</a>
+        <a href="/api/random">Acak</a>
+        <a href="/about/" class:list={[{"active": currentPath.startsWith("/about")}]}>Tentang</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="md3-icon-btn" onclick="toggleHeaderSearch()" aria-label="Cari" title="Cari">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        </button>
+        <button class="md3-chip desktop-prefs" onclick="toggleSheet()">⚙️ Tampilan</button>
+      </div>
+    </div>
+    <!-- Search Bar Overlay in Header -->
+    <div id="header-search-bar" style="display: none; height: 100%; align-items: center; padding: 0 16px; background: var(--md-surface);">
+      <form action="/search" method="GET" style="display: flex; width: 100%; align-items: center; gap: 8px;">
+        <button type="button" class="md3-icon-btn" onclick="toggleHeaderSearch()" aria-label="Tutup">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <input type="text" name="q" id="header-search-input" placeholder="Cari artikel..." style="flex: 1; border: none; background: transparent; font-size: 1rem; color: var(--md-on-surface); outline: none;" autocomplete="off" />
+        <button type="submit" class="md3-chip" style="padding: 6px 12px; font-size: 0.85rem;">Cari</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="md3-main"><slot /></main>
+
+  <footer class="md3-footer">
+    <span>Simple Reads</span>
+    <span class="md3-footer-sub">Saring Kebisingan. Tumbuhkan Kedamaian.</span>
+  </footer>
+
+  <!-- MD3 Bottom Navigation (4-item standard: Beranda, Jelajah, Acak, Tampilan) -->
+  <nav class="md3-bottom-nav">
+    <a href="/" class:list={["md3-nav-item", {"active": currentPath === "/"}]}>
+      <span class="md3-nav-indicator"></span>
+      <svg class="md3-nav-icon" viewBox="0 0 24 24" fill="none"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/></svg>
+      <span class="md3-nav-label">Beranda</span>
+    </a>
+    <a href="/explore/" class:list={["md3-nav-item", {"active": currentPath.startsWith("/explore")}]}>
+      <span class="md3-nav-indicator"></span>
+      <svg class="md3-nav-icon" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="currentColor"/></svg>
+      <span class="md3-nav-label">Jelajah</span>
+    </a>
+    <a href="/api/random" class="md3-nav-item md3-nav-random">
+      <span class="md3-nav-indicator"></span>
+      <svg class="md3-nav-icon" viewBox="0 0 24 24" fill="none"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" fill="currentColor"/></svg>
+      <span class="md3-nav-label">Acak</span>
+    </a>
+    <button class="md3-nav-item" onclick="toggleSheet()">
+      <span class="md3-nav-indicator"></span>
+      <svg class="md3-nav-icon" viewBox="0 0 24 24" fill="none"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" fill="currentColor"/></svg>
+      <span class="md3-nav-label">Tampilan</span>
+    </button>
+  </nav>
+
+  <!-- MD3 Bottom Sheet: Preferences -->
+  <div class="md3-sheet-overlay" id="pref-overlay" onclick="toggleSheet()"></div>
+  <div class="md3-bottom-sheet" id="pref-sheet">
+    <div class="md3-sheet-drag"></div>
+    <h3 class="md3-sheet-title">Tampilan</h3>
+    <div class="md3-sheet-section">
+      <p class="md3-sheet-label">Tema</p>
+      <div class="md3-chip-group">
+        <button class="md3-chip" data-theme="light" onclick="setTheme('light')">☀️ Terang</button>
+        <button class="md3-chip" data-theme="sepia" onclick="setTheme('sepia')">📜 Sepia</button>
+        <button class="md3-chip" data-theme="dark" onclick="setTheme('dark')">🌙 Gelap</button>
+      </div>
+    </div>
+    <div class="md3-sheet-section">
+      <p class="md3-sheet-label">Font Size</p>
+      <div class="md3-chip-group">
+        <button class="md3-chip" onclick="changeFontSize(-1)">A- Kecil</button>
+        <button class="md3-chip" onclick="changeFontSize(0)">A Normal</button>
+        <button class="md3-chip" onclick="changeFontSize(1)">A+ Besar</button>
+      </div>
+    </div>
+    <div class="md3-sheet-section">
+      <p class="md3-sheet-label">Font</p>
+      <div class="md3-chip-group">
+        <button class="md3-chip font-literata" data-font="literata" onclick="setFont('literata')">Classic</button>
+        <button class="md3-chip font-inter" data-font="inter" onclick="setFont('inter')">Modern</button>
+      </div>
+    </div>
+    <div class="md3-sheet-section">
+      <p class="md3-sheet-label">Suasana Hati (Mood)</p>
+      <div class="md3-chip-group">
+        <button class="md3-chip" data-mood="tenang" onclick="setMood('tenang')">🌿 Tenang</button>
+        <button class="md3-chip" data-mood="fokus" onclick="setMood('fokus')">⚡ Fokus</button>
+        <button class="md3-chip" data-mood="reflektif" onclick="setMood('reflektif')">🕊️ Reflektif</button>
+      </div>
+    </div>
+    <button class="md3-sheet-close" onclick="toggleSheet()">Tutup</button>
+  </div>
+
+  <script is:inline>
+    // Fade-in effect on load
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.style.opacity = '0';
+      document.body.style.transition = 'opacity 0.5s ease-in-out';
+      requestAnimationFrame(() => {
+        document.body.style.opacity = '1';
+      });
+    });
+
+    const savedTheme = localStorage.getItem('simple-reads-theme') || 'light';
+    const savedFont = localStorage.getItem('simple-reads-font') || 'literata';
+    const savedFontSize = localStorage.getItem('simple-reads-font-size') || '0'; // '-1', '0', '1'
+    const savedMood = localStorage.getItem('simple-reads-mood') || 'tenang';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.documentElement.setAttribute('data-font', savedFont);
+    document.documentElement.setAttribute('data-font-size', savedFontSize);
+    document.documentElement.setAttribute('data-mood', savedMood);
+    updateChipStates(savedTheme, savedFont, savedMood);
+
+    function updateChipStates(t, f, m) {
+      document.querySelectorAll('button[data-theme]').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-theme') === t);
+      });
+      document.querySelectorAll('button[data-font]').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-font') === f);
+      });
+      document.querySelectorAll('button[data-mood]').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-mood') === m);
+      });
+    }
+
+    window.changeFontSize = (val) => {
+      document.documentElement.setAttribute('data-font-size', String(val));
+      localStorage.setItem('simple-reads-font-size', String(val));
+    };
+
+    window.setTheme = (t) => {
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('simple-reads-theme', t);
+      document.querySelectorAll('button[data-theme]').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-theme') === t);
+      });
+    };
+    window.setFont = (f) => {
+      document.documentElement.setAttribute('data-font', f);
+      localStorage.setItem('simple-reads-font', f);
+      document.querySelectorAll('button[data-font]').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-font') === f);
+      });
+    };
+    window.setMood = (m) => {
+      document.documentElement.setAttribute('data-mood', m);
+      localStorage.setItem('simple-reads-mood', m);
+      document.querySelectorAll('button[data-mood]').forEach(c => {
+        c.classList.toggle('selected', c.getAttribute('data-mood') === m);
+      });
+    };
+    window.toggleSheet = () => {
+      document.getElementById('pref-sheet').classList.toggle('open');
+      document.getElementById('pref-overlay').classList.toggle('open');
+    };
+    window.toggleHeaderSearch = () => {
+      const normal = document.getElementById('normal-header-content');
+      const searchBar = document.getElementById('header-search-bar');
+      const input = document.getElementById('header-search-input');
+      if (searchBar.style.display === 'none') {
+        normal.style.display = 'none';
+        searchBar.style.display = 'flex';
+        input.focus();
+      } else {
+        searchBar.style.display = 'none';
+        normal.style.display = 'flex';
+        input.value = '';
+      }
+    };
+  </script>
+  <script>
+    const bar = document.getElementById("reading-progress");
+    const update = () => {
+      const max = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (bar) bar.style.width = `${max > 0 ? (scrollY / max) * 100 : 0}%`;
+    };
+    addEventListener("scroll", update, { passive: true });
+    update();
+  </script>
+  <script is:inline>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            console.log('SW registered');
+            if (reg.active) {
+              reg.active.postMessage({ type: 'PREFETCH_ALL' });
+            }
+          })
+          .catch(err => console.log('SW registration failed: ', err));
+      });
+    }
+  </script>
+</body>
+</html>
+
+<style is:global>
+/* ==============================
+   MD3 Color System
+   ============================== */
+:root {
+  /* Light */
+  --md-primary: #993C1D;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #F5C4B3;
+  --md-on-primary-container: #4A1B0C;
+  --md-secondary: #7A5B4E;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #F0DDD3;
+  --md-on-secondary-container: #2E1810;
+  --md-tertiary: #3C6E7A;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #C8E6EC;
+  --md-on-tertiary-container: #062024;
+  --md-surface: #FFFBF8;
+  --md-surface-dim: #E0D5CD;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #FCF1EA;
+  --md-surface-container: #F6EBE3;
+  --md-surface-container-high: #F0E4DC;
+  --md-surface-container-highest: #EAE0D8;
+  --md-on-surface: #211A16;
+  --md-on-surface-variant: #52443C;
+  --md-outline: #85746B;
+  --md-outline-variant: #D7C3B8;
+  --md-inverse-surface: #372E29;
+  --md-inverse-on-surface: #FCEEE6;
+  --md-scrim: #000000;
+  --md-shadow: #000000;
+  --md-surface-tint: #993C1D;
+}
+
+[data-theme="dark"] {
+  --md-primary: #FFB599;
+  --md-on-primary: #5C1D00;
+  --md-primary-container: #7A2D0F;
+  --md-on-primary-container: #FFDBCB;
+  --md-secondary: #E7C0AE;
+  --md-on-secondary: #422C21;
+  --md-secondary-container: #5B4236;
+  --md-on-secondary-container: #F5DED2;
+  --md-tertiary: #A0CED9;
+  --md-on-tertiary: #00363D;
+  --md-tertiary-container: #1D4E58;
+  --md-on-tertiary-container: #C8E6EC;
+  --md-surface: #18120E;
+  --md-surface-dim: #18120E;
+  --md-surface-container-lowest: #120D09;
+  --md-surface-container-low: #211A16;
+  --md-surface-container: #251D19;
+  --md-surface-container-high: #2F2723;
+  --md-surface-container-highest: #3A312D;
+  --md-on-surface: #EDE0D9;
+  --md-on-surface-variant: #D7C3B8;
+  --md-outline: #A08D83;
+  --md-outline-variant: #52443C;
+  --md-inverse-surface: #EDE0D9;
+  --md-inverse-on-surface: #372E29;
+}
+
+[data-theme="sepia"] {
+  --md-primary: #8B3D14;
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #FFD6BE;
+  --md-on-primary-container: #2E1200;
+  --md-secondary: #6B5D3F;
+  --md-on-secondary: #FFFFFF;
+  --md-secondary-container: #F5E0BB;
+  --md-on-secondary-container: #241A04;
+  --md-tertiary: #3C6E7A;
+  --md-on-tertiary: #FFFFFF;
+  --md-tertiary-container: #C8E6EC;
+  --md-on-tertiary-container: #062024;
+  --md-surface: #FDF6EE;
+  --md-surface-dim: #E0D6C9;
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F9F0E4;
+  --md-surface-container: #F3E9DB;
+  --md-surface-container-high: #EDE2D2;
+  --md-surface-container-highest: #E7DBC9;
+  --md-on-surface: #1E1810;
+  --md-on-surface-variant: #4D4030;
+  --md-outline: #7E7261;
+  --md-outline-variant: #CFC0A7;
+}
+
+/* ==============================
+   MD3 Type Scale
+   ============================== */
+[data-font="inter"] { font-family: 'Inter', system-ui, sans-serif; }
+[data-font="literata"] { font-family: 'Literata', Georgia, serif; }
+
+/* Font size modifiers */
+:root { --font-body-size: 1.125rem; }
+[data-font-size="-1"] { --font-body-size: 1rem; }
+[data-font-size="0"] { --font-body-size: 1.125rem; }
+[data-font-size="1"] { --font-body-size: 1.3rem; }
+
+/* ==============================
+   Mood Presets
+   ============================== */
+/* ponytail: mood affects global body spacing/typography feel and article body specifics */
+[data-mood="tenang"] body { letter-spacing: 0.02em; word-spacing: 0.05em; }
+[data-mood="tenang"] .article-body p { margin-bottom: 1.4em; }
+[data-mood="fokus"] body { letter-spacing: 0; word-spacing: 0; line-height: 1.45; }
+[data-mood="fokus"] .article-body p { margin-bottom: 1em; }
+[data-mood="reflektif"] body { letter-spacing: 0.01em; word-spacing: 0.03em; line-height: 1.7; font-style: italic; }
+[data-mood="reflektif"] .article-body p { margin-bottom: 1.5em; }
+
+/* ==============================
+   MD3 Global
+   ============================== */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  line-height: 1.6;
+  padding-top: 64px; /* Sesuai tinggi sticky header */
+  padding-bottom: 32px;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: none; }
+
+/* ==============================
+   MD3 Top App Bar (Sticky, Solid, Covered)
+   ============================== */
+.md3-top-app-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1000; /* Prioritas di atas segalanya */
+  background: var(--md-surface);
+  border-bottom: 1px solid var(--md-outline-variant);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: background-color 0.3s ease;
+}
+.md3-top-bar-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.md3-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--md-primary);
+  white-space: nowrap;
+}
+.md3-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  color: var(--md-on-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  min-width: 40px;
+  min-height: 40px;
+}
+.md3-icon-btn:hover {
+  background-color: var(--md-surface-variant, rgba(0,0,0,0.08));
+}
+.md3-desktop-nav { display: flex; gap: 4px; flex-wrap: nowrap; }
+@media (max-width: 768px) {
+  .md3-desktop-nav { display: none; }
+}
+.md3-desktop-nav a {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--md-on-surface-variant);
+  transition: all 0.2s ease;
+}
+.md3-desktop-nav a:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+.md3-desktop-nav a.active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* ==============================
+   MD3 Chips
+   ============================== */
+.md3-chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.md3-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline);
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.md3-chip:hover {
+  background: var(--md-surface-container-high);
+}
+.md3-chip.selected {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  border-color: transparent;
+}
+.font-literata { font-family: 'Literata', Georgia, serif; }
+.font-inter { font-family: 'Inter', system-ui, sans-serif; }
+
+/* ==============================
+   MD3 Main Content
+   ============================== */
+.md3-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ==============================
+   MD3 Hero
+   ============================== */
+.hero {
+  max-width: 800px;
+  padding: 64px 32px;
+  border-radius: 24px;
+  transition: background 1.2s ease, color 0.8s ease;
+}
+
+/* Light Theme Time-aware Gradients */
+[data-theme="light"] .hero[data-time="morning"] { background: linear-gradient(135deg, #FFF9E6, #F0FDF4); }
+[data-theme="light"] .hero[data-time="day"] { background: linear-gradient(135deg, #F3F8F5, #EBF5F1); }
+[data-theme="light"] .hero[data-time="evening"] { background: linear-gradient(135deg, #FFF2E6, #F5EBEB); }
+[data-theme="light"] .hero[data-time="night"] { background: linear-gradient(135deg, #EDF2F7, #E2E8F0); }
+
+/* Dark Theme Time-aware Gradients */
+[data-theme="dark"] .hero[data-time="morning"] { background: linear-gradient(135deg, #1C2321, #121A18); }
+[data-theme="dark"] .hero[data-time="day"] { background: linear-gradient(135deg, #151A18, #101413); }
+[data-theme="dark"] .hero[data-time="evening"] { background: linear-gradient(135deg, #231C1A, #141110); }
+[data-theme="dark"] .hero[data-time="night"] { background: linear-gradient(135deg, #0F1316, #090C0E); }
+
+/* Sepia Theme Time-aware Gradients */
+[data-theme="sepia"] .hero[data-time="morning"] { background: linear-gradient(135deg, #FCF5E3, #F4EED8); }
+[data-theme="sepia"] .hero[data-time="day"] { background: linear-gradient(135deg, #FAF2E5, #F3EBDD); }
+[data-theme="sepia"] .hero[data-time="evening"] { background: linear-gradient(135deg, #F9EADA, #ECDCCD); }
+[data-theme="sepia"] .hero[data-time="night"] { background: linear-gradient(135deg, #E8DCC4, #DCD0B8); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    transition: none !important;
+  }
+}
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--md-primary);
+  margin: 0 0 16px;
+}
+h1 {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1.1;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: var(--md-on-surface);
+  letter-spacing: -0.02em;
+}
+h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 8px;
+  color: var(--md-on-surface);
+}
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 8px;
+}
+.lead {
+  font-size: 1.125rem;
+  color: var(--md-on-surface-variant);
+  max-width: 640px;
+  line-height: 1.7;
+}
+
+/* ==============================
+   MD3 Button (Filled)
+   ============================== */
+.md3-btn-filled {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 20px;
+  border: none;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.md3-btn-filled:hover {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  text-decoration: none;
+}
+
+/* ==============================
+   MD3 Section
+   ============================== */
+.section { padding: 32px 0 64px; }
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+.section-head a {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--md-primary);
+}
+
+/* ==============================
+   MD3 Grid & Cards
+   ============================== */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 600px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+.card {
+  display: block;
+  padding: 16px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+  background: var(--md-surface-container-low);
+  transition: all 0.2s ease;
+}
+.card:hover {
+  background: var(--md-surface-container);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  text-decoration: none;
+}
+.card h2 {
+  font-size: 1.125rem;
+  margin: 8px 0 8px;
+}
+.card p {
+  font-size: 0.875rem;
+  color: var(--md-on-surface-variant);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.card .meta {
+  font-size: 0.75rem;
+  color: var(--md-outline);
+}
+.category {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--md-primary);
+  text-transform: uppercase;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  padding: 2px 10px;
+  border-radius: 100px;
+}
+
+/* ==============================
+   MD3 Manifesto
+   ============================== */
+.manifesto {
+  border-top: 1px solid var(--md-outline-variant);
+  padding: 64px 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+  max-width: 800px;
+  line-height: 1.4;
+  color: var(--md-on-surface);
+}
+
+/* ==============================
+   MD3 Article Page
+   ============================== */
+.article {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 0 120px;
+}
+.article-header { margin-bottom: 48px; }
+.article-header h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+}
+.article-body {
+  font-size: var(--font-body-size);
+  line-height: 1.9;
+}
+.article-body h2 { margin-top: 2em; }
+.article-body p { margin: 1.2em 0; }
+.article-body blockquote {
+  border-left: 3px solid var(--md-primary);
+  padding-left: 20px;
+  color: var(--md-on-surface-variant);
+  margin: 24px 0;
+}
+.article-body img { max-width: 100%; border-radius: 16px; }
+.article-sources {
+  border-top: 1px solid var(--md-outline-variant);
+  margin-top: 48px;
+  padding-top: 24px;
+  font-size: 0.875rem;
+}
+.back {
+  font-size: 0.875rem;
+  color: var(--md-primary);
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 32px;
+}
+.prose { max-width: 720px; }
+.prose li { margin: 8px 0; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; }
+
+/* ==============================
+   MD3 Footer
+   ============================== */
+.md3-footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--md-outline-variant);
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant);
+}
+
+/* ==============================
+   MD3 Progress Bar
+   ============================== */
+.progress {
+  position: fixed;
+  top: 64px; /* Di bawah sticky header */
+  left: 0;
+  height: 3px;
+  background: var(--md-primary);
+  z-index: 1001;
+  width: 0;
+  transition: width 0.1s linear;
+}
+
+/* ==============================
+   MD3 Bottom Navigation (Standard 4-Item, Rounded Indicator)
+   ============================== */
+.md3-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: var(--md-surface-container);
+  z-index: 1000;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+  border-top: 1px solid var(--md-outline-variant);
+  box-shadow: 0 -1px 3px rgba(0,0,0,0.04);
+}
+.md3-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 100%;
+  gap: 4px;
+  cursor: pointer;
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--md-on-surface-variant);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  flex: 1;
+}
+.md3-nav-item.active {
+  color: var(--md-on-surface);
+}
+.md3-nav-indicator {
+  position: absolute;
+  top: 12px;
+  width: 0;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--md-secondary-container);
+  transition: width 0.2s cubic-bezier(0.2, 0, 0, 1);
+  z-index: 1;
+}
+.md3-nav-item.active .md3-nav-indicator {
+  width: 64px;
+}
+.md3-nav-icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  z-index: 2;
+}
+.md3-nav-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+}
+
+/* ==============================
+   MD3 Bottom Sheet
+   ============================== */
+.md3-sheet-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.32);
+  z-index: 2000; /* Paling atas */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.md3-sheet-overlay.open { display: block; opacity: 1; pointer-events: all; }
+.md3-bottom-sheet {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--md-surface-container-low);
+  border-radius: 28px 28px 0 0;
+  padding: 16px 24px 32px;
+  z-index: 2001; /* Di atas overlay */
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+.md3-bottom-sheet.open { display: block; transform: translateY(0); }
+@media (min-width: 769px) {
+  .md3-bottom-sheet {
+    max-width: 400px;
+    left: auto;
+    right: 24px;
+    border-radius: 28px;
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  .md3-bottom-sheet.open {
+    display: block;
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.md3-sheet-drag {
+  width: 32px;
+  height: 4px;
+  background: var(--md-outline-variant);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.md3-sheet-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 20px;
+  color: var(--md-on-surface);
+}
+.md3-sheet-section { margin-bottom: 20px; }
+.md3-sheet-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 10px;
+}
+.md3-sheet-close {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 100px;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* ==============================
+   MD3 Mobile Responsive
+   ============================== */
+@media (max-width: 768px) {
+  .desktop-prefs { display: none; }
+  .md3-desktop-nav { display: none; }
+  .md3-bottom-nav { display: flex; }
+  .md3-bottom-sheet, .md3-sheet-overlay { display: block; pointer-events: none; }
+  .md3-bottom-sheet.open, .md3-sheet-overlay.open { pointer-events: all; }
+  body { 
+    padding-top: 64px; /* Jaga jarak header */
+    padding-bottom: 110px; /* Jaga jarak bottom nav */
+  }
+
+  .hero { padding: 32px 20px 24px; border-radius: 16px; }
+  h1 { font-size: 1.75rem; }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .grid { grid-template-columns: 1fr; gap: 12px; }
+  .manifesto { font-size: 1.25rem; padding: 40px 0; }
+
+  .md3-top-app-bar {
+    background: var(--md-surface);
+    border-bottom: 1px solid var(--md-outline-variant);
+  }
+  .md3-top-bar-content {
+    padding: 0 16px;
+  }
+  .md3-main { padding: 0 16px; }
+  .md3-footer { padding: 24px 16px; margin-bottom: 40px; }
+}
+</style>

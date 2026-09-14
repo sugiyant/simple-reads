@@ -1,0 +1,511 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// Kita render halaman kosong/placeholder statik di server,
+// lalu client-side JS akan mengambil data terupdate dari D1 API.
+---
+
+<BaseLayout title="Panel Admin — Simple Reads">
+  <div class="admin-wrapper">
+    
+    <!-- Lock Screen -->
+    <div id="login-screen" class="md3-card-dialog">
+      <div class="lock-icon">🔒</div>
+      <h2>Akses Terbatas</h2>
+      <p class="subtitle">Masukan password admin untuk mengelola draf dan publikasi artikel.</p>
+      <input type="password" id="admin-pass" placeholder="Password Admin" class="form-control" />
+      <button class="md3-btn-filled full-width" onclick="checkPass()">Masuk Panel</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="admin-dashboard" style="display:none;">
+      <div class="admin-top-bar">
+        <div>
+          <h2>Panel Reviewer</h2>
+          <p class="subtitle">Kelola bacaan "Mental Nutrition" Anda</p>
+        </div>
+        <button class="md3-btn-filled" onclick="openNewModal()">
+          <span>+ Tulis Manual</span>
+        </button>
+      </div>
+
+      <div class="md3-segmented-button">
+        <button class="segment-btn active" onclick="switchTab('drafts')">
+          Draf AI (<span id="drafts-count">0</span>)
+        </button>
+        <button class="segment-btn" onclick="switchTab('published')">
+          Terbit (<span id="published-count">0</span>)
+        </button>
+      </div>
+
+      <!-- Tab Draf -->
+      <div id="tab-drafts" class="tab-pane">
+        <div id="drafts-stack" class="articles-stack"></div>
+      </div>
+
+      <!-- Tab Terbit -->
+      <div id="tab-published" class="tab-pane" style="display:none;">
+        <div id="published-stack" class="articles-stack"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Manual Post (Material Design 3 Dialog) -->
+  <div id="modal-overlay" class="dialog-overlay" onclick="closeAllModals()"></div>
+  
+  <div id="manual-modal" class="dialog-box">
+    <div class="dialog-header">
+      <h3 id="modal-title">Tulis Artikel Manual</h3>
+      <button class="close-btn" onclick="closeAllModals()">✕</button>
+    </div>
+    <div class="dialog-body">
+      <input type="hidden" id="manual-slug" />
+      <div class="form-group">
+        <label>Judul Artikel</label>
+        <input type="text" id="manual-title" placeholder="Contoh: Seni Menerima Kegagalan" class="form-control" />
+      </div>
+      <div class="form-group">
+        <label>Kategori (Rak Bacaan)</label>
+        <select id="manual-cat" class="form-control">
+          <option value="mind">🧠 Pikiran</option>
+          <option value="islam">🕌 Islam</option>
+          <option value="philosophy">🏛️ Filsafat</option>
+          <option value="history">🌍 Sejarah</option>
+          <option value="science">🔬 Sains</option>
+          <option value="technology">💻 Teknologi</option>
+          <option value="world">📰 Dunia</option>
+          <option value="story">📚 Cerita</option>
+          <option value="uplift">✨ Senyum</option>
+          <option value="poetry">🍃 Puisi</option>
+          <option value="sufi">🕯️ Sufi</option>
+          <option value="tasawuf">💫 Tasawuf</option>
+          <option value="aqidah">📖 Aqidah</option>
+          <option value="akhlak">💖 Akhlak</option>
+          <option value="fiqih">⚖️ Fiqih</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Konten Bacaan (Markdown)</label>
+        <textarea id="manual-content" placeholder="Tulis artikel di sini menggunakan Markdown..." class="form-control text-area"></textarea>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-secondary" onclick="closeAllModals()">Batal</button>
+      <button class="md3-btn-filled" onclick="saveManualArticle()">Simpan & Terbitkan</button>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div id="review-modal" class="dialog-box large-dialog">
+    <div class="dialog-header">
+      <h3 id="review-title">Review Artikel</h3>
+      <button class="close-btn" onclick="closeAllModals()">✕</button>
+    </div>
+    <div class="dialog-body scrollable-body">
+      <div id="review-content" class="markdown-preview" style="white-space: pre-wrap; font-family: serif; line-height: 1.6;"></div>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn-danger" id="review-delete-btn">🗑️ Tolak & Hapus</button>
+      <button class="btn-secondary" onclick="closeAllModals()">Tutup</button>
+      <button class="md3-btn-filled" id="review-publish-btn">✓ Setujui & Terbitkan</button>
+    </div>
+  </div>
+
+  <script is:inline>
+    let articles = [];
+
+    async function init() {
+      try {
+        const res = await fetch('/api/get-articles');
+        if (res.ok) {
+          articles = await res.json();
+          renderArticles();
+        } else {
+          console.error("Fetch status:", res.status);
+        }
+      } catch(e) {
+        console.error("Error loading articles:", e);
+      }
+    }
+
+    function renderArticles() {
+      const drafts = articles.filter(a => a.status === 'draft' || a.status === 'review');
+      const published = articles.filter(a => a.status === 'published');
+
+      document.getElementById('drafts-count').textContent = drafts.length;
+      document.getElementById('published-count').textContent = published.length;
+
+      const draftsStack = document.getElementById('drafts-stack');
+      if (drafts.length === 0) {
+        draftsStack.innerHTML = `<div class="empty-box"><span class="empty-icon">☕</span><p>Tidak ada draf yang perlu direview saat ini.</p></div>`;
+      } else {
+        draftsStack.innerHTML = drafts.map(item => `
+          <div class="article-item-card">
+            <div class="item-header">
+              <span class="category">${item.category}</span>
+              <span class="score-pill">Impact: ${item.impact_score}/10</span>
+            </div>
+            <h3>${item.title}</h3>
+            <p class="item-desc">${item.content.substring(0, 150)}...</p>
+            <div class="item-actions">
+              <button class="btn-primary" onclick="openReviewModal('${item.slug}')">📖 Baca & Review</button>
+              <button class="btn-danger" onclick="deleteArticle('${item.slug}')">🗑️ Hapus</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const publishedStack = document.getElementById('published-stack');
+      if (published.length === 0) {
+        publishedStack.innerHTML = `<div class="empty-box"><span class="empty-icon">📰</span><p>Belum ada artikel yang diterbitkan.</p></div>`;
+      } else {
+        publishedStack.innerHTML = published.map(item => `
+          <div class="article-item-card">
+            <div class="item-header">
+              <span class="category">${item.category}</span>
+              <span class="date-pill">${item.published_at || item.created_at || ''}</span>
+            </div>
+            <h3>${item.title}</h3>
+            <div class="item-actions">
+              <button class="btn-primary" onclick="openEditModal('${item.slug}')">✏️ Edit</button>
+              <button class="btn-danger" onclick="deleteArticle('${item.slug}')">🗑️ Hapus</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    init();
+
+    // Removed hardcoded fallback secret for security compliance
+
+    let loginAttempts = 0;
+    function checkPass() {
+      // Bypass password check per user request, direct entry
+      localStorage.setItem('simple-reads-admin-pass', 'bypassed');
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-dashboard').style.display = 'block';
+    }
+
+    // Auto bypass
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-dashboard').style.display = 'block';
+    });
+
+    async function getAuthToken() {
+      const pass = localStorage.getItem('simple-reads-admin-pass');
+      if (!pass) return '';
+      const msg = new TextEncoder().encode(pass);
+      const hash = await crypto.subtle.digest("SHA-256", msg);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function getAuthHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + await getAuthToken()
+      };
+    }
+
+    function openNewModal() {
+      document.getElementById('manual-slug').value = '';
+      document.getElementById('modal-title').textContent = 'Tulis Artikel Manual';
+      document.getElementById('manual-title').value = '';
+      document.getElementById('manual-cat').value = 'mind';
+      document.getElementById('manual-content').value = '';
+      document.getElementById('manual-modal').style.display = 'block';
+      document.getElementById('modal-overlay').style.display = 'block';
+    }
+
+    function openEditModal(slug) {
+      const article = articles.find(a => String(a.slug) === String(slug));
+      if(!article) { alert("Artikel tidak ditemukan!"); return; }
+      document.getElementById('manual-slug').value = article.slug;
+      document.getElementById('modal-title').textContent = 'Edit Artikel';
+      document.getElementById('manual-title').value = article.title;
+      document.getElementById('manual-cat').value = article.category || 'mind';
+      document.getElementById('manual-content').value = article.content || '';
+      document.getElementById('manual-modal').style.display = 'block';
+      document.getElementById('modal-overlay').style.display = 'block';
+    }
+
+    function openReviewModal(slug) {
+      const article = articles.find(a => String(a.slug) === String(slug));
+      if(!article) { alert("Artikel tidak ditemukan!"); return; }
+      document.getElementById('review-title').textContent = article.title;
+      document.getElementById('review-content').textContent = article.content;
+      document.getElementById('review-publish-btn').onclick = () => publishArticle(slug);
+      document.getElementById('review-delete-btn').onclick = () => deleteArticle(slug);
+      document.getElementById('review-modal').style.display = 'block';
+      document.getElementById('modal-overlay').style.display = 'block';
+    }
+
+    function closeAllModals() {
+      document.getElementById('manual-modal').style.display = 'none';
+      document.getElementById('review-modal').style.display = 'none';
+      document.getElementById('modal-overlay').style.display = 'none';
+    }
+
+    async function saveManualArticle() {
+      const slug = document.getElementById('manual-slug').value;
+      const title = document.getElementById('manual-title').value;
+      const category = document.getElementById('manual-cat').value;
+      const content = document.getElementById('manual-content').value;
+      
+      if(!title || !content) { alert("Judul dan isi artikel harus diisi!"); return; }
+
+      const action = slug ? 'update' : 'create';
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ action, slug, title, category, content })
+      });
+      if(res.ok) { alert(slug ? "Artikel berhasil diperbarui!" : "Artikel berhasil dibuat!"); location.reload(); }
+      else if(res.status === 401) { alert("Unauthorized. Silakan login ulang."); localStorage.removeItem('simple-reads-admin-pass'); location.reload(); }
+      else { alert("Gagal menyimpan artikel."); }
+    }
+
+    async function publishArticle(slug) {
+      if(!confirm("Terbitkan artikel ini?")) return;
+      const res = await fetch('/api/admin', { 
+        method: 'POST', 
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ action: 'publish', slug }) 
+      });
+      if (res.ok) {
+        alert("Artikel berhasil diterbitkan!");
+        location.reload();
+      } else if(res.status === 401) { 
+        alert("Unauthorized. Silakan login ulang."); 
+        localStorage.removeItem('simple-reads-admin-pass'); 
+        location.reload(); 
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert("Gagal menerbitkan: " + (errData.error || "Error tidak diketahui"));
+      }
+    }
+    
+    async function deleteArticle(slug) {
+      if(!confirm("Hapus artikel ini?")) return;
+      const res = await fetch('/api/admin', { 
+        method: 'POST', 
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ action: 'delete', slug }) 
+      });
+      if (res.ok) {
+        alert("Artikel berhasil dihapus!");
+        location.reload();
+      } else if(res.status === 401) { 
+        alert("Unauthorized. Silakan login ulang."); 
+        localStorage.removeItem('simple-reads-admin-pass'); 
+        location.reload(); 
+      } else {
+        alert("Gagal menghapus artikel.");
+      }
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(c => c.style.display = 'none');
+      document.getElementById('tab-' + tab).style.display = 'block';
+      event.target.classList.add('active');
+    }
+  </script>
+
+  <style>
+    .admin-wrapper {
+      max-width: 800px;
+      margin: 32px auto;
+    }
+    .admin-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .subtitle {
+      color: var(--md-on-surface-variant);
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+    
+    /* Card Dialog Lock */
+    .md3-card-dialog {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 28px;
+      padding: 32px;
+      text-align: center;
+      max-width: 400px;
+      margin: 60px auto;
+    }
+    .lock-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    
+    /* Segmented Buttons */
+    .md3-segmented-button {
+      display: flex;
+      background: var(--md-surface-container-high);
+      border-radius: 20px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .segment-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--md-on-surface-variant);
+      border-radius: 16px;
+      font-weight: 500;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .segment-btn.active {
+      background: var(--md-surface-container-lowest);
+      color: var(--md-on-surface);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Article Stack */
+    .articles-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .article-item-card {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .score-pill, .date-pill {
+      font-size: 0.75rem;
+      color: var(--md-on-tertiary-container);
+      background: var(--md-tertiary-container);
+      padding: 2px 8px;
+      border-radius: 100px;
+    }
+    .item-desc {
+      font-size: 0.875rem;
+      color: var(--md-on-surface-variant);
+      margin: 8px 0 16px;
+    }
+    .item-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+    .btn-danger {
+      background: transparent;
+      border: 1px solid #FF5449;
+      color: #FF5449;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8125rem;
+      cursor: pointer;
+    }
+
+    /* Modal MD3 Dialog */
+    .dialog-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+    }
+    
+    .dialog-box {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 600px;
+      background: var(--md-surface-container-high);
+      border-radius: 28px;
+      padding: 24px;
+      z-index: 2001;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--md-on-surface-variant);
+    }
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--md-on-surface-variant);
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--md-outline);
+      background: var(--md-surface);
+      color: var(--md-on-surface);
+      font-size: 0.9375rem;
+    }
+    .text-area { min-height: 180px; resize: vertical; }
+    .dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: none;
+      color: var(--md-primary);
+      font-weight: 600;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .full-width { width: 100%; }
+    .empty-box {
+      text-align: center;
+      padding: 40px;
+      color: var(--md-outline);
+    }
+    .empty-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+    
+    /* Large Review Modal */
+    .large-dialog { max-width: 800px; }
+    .scrollable-body { max-height: 60vh; overflow-y: auto; padding-right: 10px; margin-top: 10px; }
+    .markdown-preview { font-size: 1rem; color: var(--md-on-surface); }
+  </style>
+</BaseLayout>

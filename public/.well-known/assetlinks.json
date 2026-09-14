@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.sugiyanto.op.twa",
+        "sha256_cert_fingerprints": ["EB:5C:87:2C:14:11:A2:BB:E0:BA:AB:0F:82:53:3E:1E:80:1E:66:17:C0:35:C7:6C:E6:08:57:24:41:C5:3C:D0"]
+      }
+    }]

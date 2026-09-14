@@ -1,0 +1,214 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import quotesData from "../data/quotes.json";
+
+export const prerender = false;
+
+// Set Cloudflare Caching Headers for Edge (1 minute browser, 10 minutes CDN)
+Astro.response.headers.set("Cache-Control", "public, max-age=60, s-maxage=600");
+
+const db = Astro.locals?.runtime?.env?.DB;
+let articles = [];
+
+if (db) {
+  const { results } = await db.prepare("SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC").all();
+  articles = results;
+}
+
+const quotes = quotesData.quotes;
+---
+
+<BaseLayout title="Simple Reads" description="Makanan untuk pikiran.">
+  <section class="section">
+    <div class="hero" id="hero">
+      <p class="eyebrow">MENTAL NUTRITION</p>
+      <h1>Makanan untuk Pikiran.</h1>
+      <p class="lead">Satu unit perspektif baru setiap hari. Saring kebisingan, tumbuhkan kejernihan dan kedamaian pikiran.</p>
+      <a href="/explore/" class="primary">Mulai Membaca →</a>
+    </div>
+  </section>
+
+  <section class="section daily-quote-section" id="daily-quote-section">
+    <p class="eyebrow" style="margin-bottom: 24px;">✦ SEKILAS HARI INI</p>
+    <blockquote class="daily-quote" id="daily-quote-text"></blockquote>
+    <p class="daily-quote-attribution">— Simple Reads</p>
+    <a href="/explore/" class="daily-quote-link">Baca satu menit →</a>
+  </section>
+
+  <section class="section simple-reads-pick-section">
+    <h3 class="simple-reads-pick-title">Tidak tahu mau membaca apa?</h3>
+    <p class="simple-reads-pick-subtitle">Biarkan Simple Reads memilihkan sesuatu untukmu.</p>
+    <a href="/api/random" class="simple-reads-pick-button" id="simple-reads-pick-btn">
+      <span class="button-label">Biarkan Simple Reads Memilih →</span>
+    </a>
+  </section>
+
+  <script is:inline define:vars={{ quotes }}>
+  (function() {
+    function getDailyQuoteIndex(dateStr) {
+      var hash = 0;
+      for (var i = 0; i < dateStr.length; i++) {
+        hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash) % quotes.length;
+    }
+
+    function getDailyQuote() {
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = now.getMonth() + 1;
+      var day = now.getDate();
+      var dateStr = year + "-" + month + "-" + day;
+      return quotes[getDailyQuoteIndex(dateStr)].text;
+    }
+
+    function getTimeTheme() {
+      var hour = new Date().getHours();
+      if (hour >= 5 && hour < 11) return "morning";
+      if (hour >= 11 && hour < 16) return "day";
+      if (hour >= 16 && hour < 19) return "evening";
+      return "night";
+    }
+
+    var hero = document.getElementById("hero");
+    if (hero) {
+      hero.setAttribute("data-time", getTimeTheme());
+    }
+
+    var quoteText = document.getElementById("daily-quote-text");
+    if (quoteText) {
+      quoteText.textContent = getDailyQuote();
+    }
+
+    var pickBtn = document.getElementById("simple-reads-pick-btn");
+    if (pickBtn) {
+      pickBtn.addEventListener("click", function() {
+        pickBtn.setAttribute("aria-busy", "true");
+        pickBtn.classList.add("is-picking");
+        var label = pickBtn.querySelector(".button-label");
+        if (label) {
+          label.textContent = "Simple Reads sedang memilih...";
+        }
+      });
+    }
+  })();
+  </script>
+
+  <style>
+    .daily-quote-section {
+      text-align: center;
+      padding: 64px 32px;
+      max-width: 800px;
+      margin: 0 auto;
+      border-top: 1px solid var(--md-outline-variant);
+    }
+
+    .daily-quote {
+      font-size: 1.75rem;
+      font-weight: 500;
+      line-height: 1.4;
+      margin: 0 0 16px;
+      color: var(--md-on-surface);
+      font-style: italic;
+      letter-spacing: -0.01em;
+    }
+
+    .daily-quote-attribution {
+      font-size: 0.875rem;
+      color: var(--md-on-surface-variant);
+      margin: 0 0 32px;
+      letter-spacing: 0.02em;
+    }
+
+    .daily-quote-link {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--md-primary);
+      transition: opacity 0.2s;
+    }
+
+    .daily-quote-link:hover {
+      opacity: 0.8;
+    }
+
+    .simple-reads-pick-section {
+      text-align: center;
+      padding: 64px 32px;
+      max-width: 800px;
+      margin: 0 auto;
+      border-top: 1px solid var(--md-outline-variant);
+    }
+
+    .simple-reads-pick-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 8px;
+      color: var(--md-on-surface);
+      letter-spacing: -0.01em;
+    }
+
+    .simple-reads-pick-subtitle {
+      font-size: 1rem;
+      color: var(--md-on-surface-variant);
+      margin: 0 0 24px;
+    }
+
+    .simple-reads-pick-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 28px;
+      border-radius: 100px;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: opacity 180ms ease, transform 180ms ease;
+      text-decoration: none;
+    }
+
+    .simple-reads-pick-button:hover {
+      opacity: 0.9;
+    }
+
+    .simple-reads-pick-button.is-picking {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .simple-reads-pick-button {
+        transition: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .daily-quote-section, .simple-reads-pick-section {
+        padding: 40px 20px;
+      }
+      .daily-quote {
+        font-size: 1.35rem;
+      }
+    }
+  </style>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Bacaan Terbaru</h2>
+      <a href="/archive/">Lihat Arsip →</a>
+    </div>
+    <div class="grid">
+      {articles.map(article => (
+        <a href={`/articles/${article.slug}`} class="card">
+          <span class="category">{article.category}</span>
+          <h2>{article.title}</h2>
+          <p>{article.description}</p>
+          <div class="meta" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>{article.views ?? 0} pembaca</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

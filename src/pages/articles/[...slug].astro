@@ -1,0 +1,283 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { marked } from "marked";
+
+export const prerender = false;
+
+// Cache individual articles heavily at the Edge (5 minutes browser, 1 hour CDN)
+Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=3600");
+
+const { slug } = Astro.params;
+const db = Astro.locals?.runtime?.env?.DB;
+
+let article = null;
+
+if (db && slug) {
+  const result = await db.prepare("SELECT * FROM articles WHERE slug = ?1").bind(slug).first();
+  article = result;
+}
+
+if (!article) {
+  return Astro.redirect("/404");
+}
+
+const sanitizedContent = article.content
+  .replace(/^```markdown\s*/i, "")
+  .replace(/^```\s*/i, "")
+  .replace(/```\s*$/i, "");
+const htmlContent = marked.parse(sanitizedContent);
+---
+<BaseLayout title={`${article.title} — Simple Reads`} description={article.description}>
+  <article class="article">
+    <header class="article-header">
+      <nav aria-label="Breadcrumb">
+        <a class="back" href="/">Beranda</a> / <a class="back" href={`/category/${article.category}`}>{article.category}</a>
+      </nav>
+      <div class="article-meta-row">
+        <p class="category" style="display:inline-block; margin-bottom:0;">{article.category} {article.views !== undefined ? `· 👁️ ${article.views} pembaca` : ""}</p>
+        <div style="display:flex; gap:8px;">
+            <button id="tts-btn" class="md3-chip tts-button" onclick="window.toggleSpeech()">
+            🔊 Dengarkan Artikel
+            </button>
+        </div>
+      </div>
+      <h1 style="margin-top: 16px;">{article.title}</h1>
+      <p class="lead">{article.description}</p>
+    </header>
+    <div id="toc-container"></div>
+    <div id="article-text-content" class="article-body prose" set:html={htmlContent} />
+    <div style="margin: 2rem 0; padding: 1rem 0; border-top: 1px solid var(--md-outline-variant); display: flex; gap: 8px;">
+        <button class="md3-chip" onclick="window.shareArticle()">🔗 Share</button>
+        <button id="bookmark-btn" class="md3-chip" onclick="window.toggleBookmark()">🔖 Simpan</button>
+    </div>
+    <footer class="article-footer">
+       {article.tags && JSON.parse(article.tags).map(tag => (
+          <a href={`/explore?tag=${tag}`} class="md3-chip">#{tag}</a>
+       ))}
+    </footer>
+
+  <script type="module">
+    import { getAnonId, addBookmark, removeBookmark, isBookmarked } from '/js/bookmark-db.js';
+    
+    window.shareArticle = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: document.title,
+                    url: window.location.href
+                });
+            } catch (err) { console.error('Share failed:', err); }
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Link disalin ke clipboard!");
+        }
+    };
+    
+    // Bookmark Logic (IndexedDB-based)
+    const slug = "${slug}";
+    const btn = document.getElementById('bookmark-btn');
+    let bookmarked = false;
+    
+    async function updateBtn() {
+        bookmarked = await isBookmarked(slug);
+        btn.innerText = bookmarked ? '🔖 Tersimpan' : '🔖 Simpan';
+    }
+    
+    window.toggleBookmark = async () => {
+        if (bookmarked) {
+            await removeBookmark(slug);
+        } else {
+            await addBookmark(slug);
+            // Show recovery banner if first bookmark
+            showRecoveryBannerIfNeeded();
+        }
+        await updateBtn();
+    };
+    
+    // Recovery banner
+    async function showRecoveryBannerIfNeeded() {
+        const shown = sessionStorage.getItem('recovery-banner-shown');
+        if (shown) return;
+        
+        const { getAnonId } = await import('/js/bookmark-db.js');
+        const anonId = await getAnonId();
+        
+        // Check if recovery code already exists
+        try {
+            const res = await fetch('/api/recovery-code/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ anon_id: anonId })
+            });
+            const data = await res.json();
+            if (data.success && data.code) {
+                const banner = document.createElement('div');
+                banner.id = 'recovery-banner';
+                banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--md-surface-container);border:1px solid var(--md-outline-variant);border-radius:16px;padding:16px 20px;max-width:400px;width:calc(100% - 32px);z-index:1500;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:0.875rem;';
+                banner.innerHTML = `
+                    <p style="margin:0 0 8px;font-weight:600;">🔐 Simpan kode ini</p>
+                    <p style="margin:0 0 8px;color:var(--md-on-surface-variant);">Supaya bookmark tidak hilang kalau ganti HP atau hapus data browser:</p>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <code style="font-size:1.125rem;font-weight:700;letter-spacing:0.1em;background:var(--md-surface);padding:6px 12px;border-radius:8px;">${data.code}</code>
+                        <button onclick="navigator.clipboard.writeText('${data.code}').then(()=>this.textContent='✓ Tersalin')" style="border:none;background:var(--md-primary);color:var(--md-on-primary);padding:6px 12px;border-radius:8px;font-size:0.8125rem;font-weight:600;cursor:pointer;">Salin</button>
+                    </div>
+                    <button onclick="document.getElementById('recovery-banner').remove()" style="border:none;background:none;color:var(--md-on-surface-variant);font-size:0.75rem;margin-top:8px;cursor:pointer;padding:0;">Tutup</button>
+                `;
+                document.body.appendChild(banner);
+                sessionStorage.setItem('recovery-banner-shown', '1');
+            }
+        } catch (e) {}
+    }
+    
+    updateBtn();
+    // TOC generation logic
+    const headers = document.querySelectorAll('#article-text-content h2, #article-text-content h3');
+    if (headers.length > 3) {
+        const toc = document.createElement('div');
+        toc.innerHTML = '<h3>Daftar Isi</h3><ul>' + 
+            Array.from(headers).map(h => `<li><a href="#${h.id}">${h.textContent}</a></li>`).join('') + 
+            '</ul>';
+        document.getElementById('toc-container').appendChild(toc);
+    }
+    // ensure IDs for headers
+    document.querySelectorAll('#article-text-content h2, #article-text-content h3').forEach((h, i) => {
+        if (!h.id) h.id = 'heading-' + i;
+    });
+  </script>
+  </article>
+
+  <style>
+    :root {
+      --article-font-family: serif;
+      --article-line-height: 1.6;
+      --article-letter-spacing: normal;
+    }
+    .mood-calm { --article-font-family: 'Georgia', serif; --article-line-height: 1.8; --article-letter-spacing: 0.02em; }
+    .mood-focus { --article-font-family: 'Inter', sans-serif; --article-line-height: 1.5; --article-letter-spacing: normal; }
+    .mood-reflective { --article-font-family: 'Times New Roman', serif; --article-line-height: 2.0; --article-letter-spacing: 0.05em; }
+    
+    .article-body {
+      font-family: var(--article-font-family);
+      line-height: var(--article-line-height);
+      letter-spacing: var(--article-letter-spacing);
+      transition: all 0.3s ease;
+    }
+    
+    .mood-switcher-bottom {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+
+  <div class="mood-switcher-bottom">
+    <a href="/search" class="md3-chip">🔍 Cari</a>
+    <button class="md3-chip" onclick="setMood('mood-calm')">🌿 Tenang</button>
+    <button class="md3-chip" onclick="setMood('mood-focus')">⚡ Fokus</button>
+    <button class="md3-chip" onclick="setMood('mood-reflective')">🕊️ Reflektif</button>
+  </div>
+
+  <script is:inline>
+    // View tracking increment
+    (async () => {
+      const slug = window.location.pathname.split('/').filter(Boolean).pop();
+      const sessionKey = `viewed_${slug}`;
+      if (slug && !sessionStorage.getItem(sessionKey)) {
+        try {
+          const res = await fetch('/api/view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug })
+          });
+          if (res.ok) {
+            sessionStorage.setItem(sessionKey, 'true');
+          }
+        } catch (e) {
+          console.error('Failed to record view:', e);
+        }
+      }
+    })();
+    
+    window.setMood = function(moodClass) {
+      const body = document.getElementById('article-text-content');
+      if (body) {
+        body.className = 'article-body prose ' + moodClass;
+        localStorage.setItem('simple-reads-mood', moodClass);
+      }
+    };
+    
+    // Wrap to avoid re-declaration
+    {
+      const slugSavedMood = localStorage.getItem('simple-reads-mood');
+      if (slugSavedMood) {
+        document.addEventListener('DOMContentLoaded', () => {
+          window.setMood(slugSavedMood);
+        });
+      }
+    }
+
+    let currentUtterance = null;
+    window.toggleSpeech = function() {
+      if (!('speechSynthesis' in window)) {
+        alert("Maaf, browser Anda tidak mendukung fitur Text-to-Speech.");
+        return;
+      }
+      const btn = document.getElementById('tts-btn');
+      const contentEl = document.getElementById('article-text-content');
+      
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        currentUtterance = null;
+        btn.textContent = "🔊 Dengarkan Artikel";
+        btn.classList.remove('selected');
+        return;
+      }
+
+      const text = contentEl ? (contentEl.innerText || contentEl.textContent) : "";
+      if (!text.trim()) {
+        alert("Tidak ada teks untuk dibaca.");
+        return;
+      }
+
+      currentUtterance = new SpeechSynthesisUtterance(text);
+      currentUtterance.lang = 'id-ID';
+      currentUtterance.rate = 1.0;
+      
+      currentUtterance.onstart = () => {
+        btn.textContent = "⏹️ Berhenti";
+        btn.classList.add('selected');
+      };
+
+      currentUtterance.onend = () => {
+        currentUtterance = null;
+        btn.textContent = "🔊 Dengarkan Artikel";
+        btn.classList.remove('selected');
+      };
+      
+      currentUtterance.onerror = (e) => {
+        console.error("TTS Error:", e);
+        currentUtterance = null;
+        btn.textContent = "🔊 Dengarkan Artikel";
+        btn.classList.remove('selected');
+      };
+
+      window.speechSynthesis.speak(currentUtterance);
+    };
+  </script>
+
+  <style>
+    .article-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .tts-button {
+      cursor: pointer;
+      font-size: 0.8125rem;
+    }
+  </style>
+</BaseLayout>

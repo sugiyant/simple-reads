@@ -1,0 +1,19 @@
+{
+  "name": "Simple Reads — Daily Picks (placeholder)",
+  "version": 1,
+  "language": "en",
+  "description": "Placeholder set for the homepage 'Today's Pick' feature. Replace with real content once the article-generation pipeline is ready.",
+  "usage": "One entry is picked deterministically based on the user's local date. Do not use Math.random() on every render.",
+  "quotes": [
+    { "id": 1, "text": "Practice a little every day. Small steps add up.", "author": "Simple Reads" },
+    { "id": 2, "text": "You don't need big words. Simple words work well.", "author": "Simple Reads" },
+    { "id": 3, "text": "Reading slowly is still reading.", "author": "Simple Reads" },
+    { "id": 4, "text": "A new word today. One more tool for tomorrow.", "author": "Simple Reads" },
+    { "id": 5, "text": "Mistakes are part of learning. Keep going.", "author": "Simple Reads" },
+    { "id": 6, "text": "Short sentences are easy to understand.", "author": "Simple Reads" },
+    { "id": 7, "text": "Read a little. Understand a lot.", "author": "Simple Reads" },
+    { "id": 8, "text": "Every article is a small step forward.", "author": "Simple Reads" },
+    { "id": 9, "text": "Listen, read, repeat. That is how language grows.", "author": "Simple Reads" },
+    { "id": 10, "text": "Today's word can become tomorrow's habit.", "author": "Simple Reads" }
+  ]
+}

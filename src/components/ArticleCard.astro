@@ -1,0 +1,18 @@
+---
+const { article } = Astro.props;
+const categoryLabels = {
+  mind: "🧠 Pikiran",
+  islam: "🕌 Islam",
+  philosophy: "🏛️ Filsafat",
+  history: "🌍 Sejarah",
+  science: "🔬 Sains",
+  technology: "💻 Teknologi",
+  world: "📰 Dunia"
+};
+---
+<a class="card" href={`/articles/${article.slug}/`} data-pagefind-body>
+  <div class="category">{categoryLabels[article.data.category] || article.data.category}</div>
+  <h2>{article.data.title}</h2>
+  <p>{article.data.description}</p>
+  <div class="meta">{article.data.readingTime} mnt baca · {article.data.date.toLocaleDateString("id-ID", {month: "short", day: "numeric", year: "numeric"})}</div>
+</a>

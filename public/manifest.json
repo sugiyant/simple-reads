@@ -1,0 +1,23 @@
+{
+  "name": "Simple Reads",
+  "short_name": "Simple Reads",
+  "description": "Simple English learning articles for practicing your reading.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF8",
+  "theme_color": "#993C1D",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

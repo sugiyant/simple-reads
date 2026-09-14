@@ -1,0 +1,28 @@
+{
+  "name": "simple-reads",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "validate": "node scripts/validate-content.js",
+    "generate": "node scripts/generate-daily.js",
+    "generate:ideas": "node scripts/generate-ideas.js",
+    "quality": "node scripts/quality-check.js",
+    "prepare": "husky || true"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.13",
+    "@astrojs/rss": "^4.0.0",
+    "@astrojs/sitemap": "^3.6.0",
+    "astro": "^5.13.0",
+    "marked": "^18.0.12",
+    "pagefind": "^1.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

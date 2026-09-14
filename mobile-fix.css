@@ -1,0 +1,37 @@
+
+.md3-top-app-bar {
+  padding: 8px 16px; /* Lebih ringkas */
+  gap: 16px;
+  border-bottom: none; /* Bersih */
+}
+.md3-brand {
+  font-size: 1.1rem;
+}
+
+/* Fix header overlap: Tambah ruang header */
+body {
+  padding-top: 60px; /* Ruang untuk header */
+}
+
+/* Preferences bar: Sembunyikan di mobile, pindah ke sheet */
+.preferences-bar {
+  display: none;
+}
+@media (max-width: 768px) {
+  .preferences-bar {
+    display: none; /* Pindah ke bottom sheet */
+  }
+  .md3-top-app-bar {
+    background: var(--md-surface);
+  }
+}
+
+/* Card: Rapikan badge */
+.category {
+  margin-bottom: 8px;
+}
+
+/* Progress Bar */
+.progress {
+  top: 60px; /* Di bawah header sticky */
+}
